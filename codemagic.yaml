@@ -85,7 +85,14 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: W8RCTZ59R2
+        api_key: |
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
+          67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
+          9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
+          0X90+Twp
+          -----END PRIVATE KEY-----
+        key_id: "W8RCTZ59R2"
         issuer_id: "07922d40-426a-4a77-bc97-4d2959bfb708"
         submit_to_testflight: true
         cancel_previous_submissions: true
