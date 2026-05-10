@@ -48,14 +48,16 @@ workflows:
       - name: Write Apple API Key (.p8)
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
-          cat > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 << 'APPLE_KEY'
-          -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
-          67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
-          9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
-          0X90+Twp
-          -----END PRIVATE KEY-----
-          APPLE_KEY
+          python3 -c "
+          key = '''-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
+67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
+9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
+0X90+Twp
+-----END PRIVATE KEY-----'''
+          with open('/root/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8', 'w') as f:
+              f.write(key.strip())
+          "
 
       - name: Fetch signing files from Apple
         script: |
