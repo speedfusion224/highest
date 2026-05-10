@@ -19,6 +19,9 @@ build/
 *.ipa
 *.app
 
+# Generated config
+src/config.js
+
 # IDE
 .vscode/
 .idea/
