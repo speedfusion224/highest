@@ -23,7 +23,7 @@ This project now includes a Codemagic workflow for building the web app.
 
 ## Injecting API keys
 
-This workflow includes placeholders for Supabase and Paystack keys directly in `codemagic.yaml`.
+This workflow includes placeholders for Supabase, Paystack, and Apple credentials directly in `codemagic.yaml`.
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
@@ -31,8 +31,14 @@ This workflow includes placeholders for Supabase and Paystack keys directly in `
 - `PAYSTACK_PUBLIC_KEY`
 - `PAYSTACK_SECRET_KEY`
 - `PAYSTACK_BASE_URL`
+- `APPLE_API_KEY_ID`
+- `APPLE_API_KEY_ISSUER_ID`
+- `APPLE_API_KEY_PATH`
+- `APPLE_API_KEY_P8`
+- `APPLE_TEAM_ID`
+- `APPLE_ID`
 
-If you want to avoid manual environment setup entirely, replace the placeholder values in `codemagic.yaml` with your real keys.
+If you want to avoid manual environment setup entirely, replace the placeholder values in `codemagic.yaml` with your real keys and Apple private key contents.
 
 > Note: Embedding secret values directly in repository files is not secure. Prefer Codemagic UI encrypted environment variables if possible.
 

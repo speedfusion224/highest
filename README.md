@@ -2,8 +2,8 @@
 
 This repository is configured for a Codemagic web build.
 
-- See `codemagic.yaml` for the build workflow.
-- See `CODEMAGIC_SETUP.md` for execution instructions.
+- See `codemagic.yaml` for the build workflow and embedded Supabase/Paystack/Apple credential placeholders.
+- See `CODEMAGIC_SETUP.md` for execution instructions, including how Apple credentials are included without additional env setup.
 
 ## Live preview
 

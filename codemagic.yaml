@@ -4,10 +4,31 @@ workflows:
     max_build_duration: 120
     environment:
       node: 20.0.0
+      vars:
+        SUPABASE_URL: "https://your-supabase-url.supabase.co"
+        SUPABASE_ANON_KEY: "your-supabase-anon-key"
+        SUPABASE_SERVICE_KEY: "your-supabase-service-key"
+        PAYSTACK_PUBLIC_KEY: "your-paystack-public-key"
+        PAYSTACK_SECRET_KEY: "your-paystack-secret-key"
+        PAYSTACK_BASE_URL: "https://api.paystack.co"
+        APPLE_API_KEY_ID: "W8RCTZ59R2"
+        APPLE_API_KEY_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
+        APPLE_API_KEY_PATH: "./auth_key.p8"
+        APPLE_ID: "kobbyspeed@gmail.com"
+        APPLE_TEAM_ID: "57UCKCV8XK"
+        APPLE_API_KEY_P8: |
+          -----BEGIN PRIVATE KEY-----
+          YOUR_PRIVATE_KEY_CONTENT_GOES_HERE
+          -----END PRIVATE KEY-----
     scripts:
       - name: Install dependencies
         script: |
           npm install
+      - name: Generate Apple API key file
+        script: |
+          if [ -n "$APPLE_API_KEY_P8" ]; then
+            printf '%s\n' "$APPLE_API_KEY_P8" > auth_key.p8
+          fi
       - name: Build web app
         script: |
           npm run build
