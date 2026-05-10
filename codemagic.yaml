@@ -19,6 +19,8 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "W8RCTZ59R2"
         APPLE_TEAM_ID: "57UCKCV8XK"
         BUNDLE_ID: "com.highestwash.app"
+        # Private key stored as base64 to avoid YAML multiline issues
+        APP_STORE_CONNECT_PRIVATE_KEY_B64: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ2xSTGQ0UWduSkhQUGFNOHIKNjdDdTdNY25sZVE2VEZ0RkJTYmwyaWdNYUMyZ0NnWUlLb1pJemowREFRZWhSQU5DQUFRMG8vTTU5b2s2UE1oVQo5ajlJVG5aVnN1VUVVdGtxQkZFaTlSd2hsM0FTV2RNalhLTmNNREY5RHUwemxqMEpacXRGNWx5MENWZElNdVFLCjBYOTArVHdwCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
 
       ios_signing:
         distribution_type: app_store
@@ -48,16 +50,7 @@ workflows:
       - name: Write Apple API Key (.p8)
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
-          python3 -c "
-          key = '''-----BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
-67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
-9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
-0X90+Twp
------END PRIVATE KEY-----'''
-          with open('/root/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8', 'w') as f:
-              f.write(key.strip())
-          "
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
 
       - name: Fetch signing files from Apple
         script: |
@@ -87,13 +80,7 @@ MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
 
     publishing:
       app_store_connect:
-        api_key: |
-          -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
-          67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
-          9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
-          0X90+Twp
-          -----END PRIVATE KEY-----
+        api_key: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ2xSTGQ0UWduSkhQUGFNOHIKNjdDdTdNY25sZVE2VEZ0RkJTYmwyaWdNYUMyZ0NnWUlLb1pJemowREFRZWhSQU5DQUFRMG8vTTU5b2s2UE1oVQo5ajlJVG5aVnN1VUVVdGtxQkZFaTlSd2hsM0FTV2RNalhLTmNNREY5RHUwemxqMEpacXRGNWx5MENWZElNdVFLCjBYOTArVHdwCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
         key_id: "W8RCTZ59R2"
         issuer_id: "07922d40-426a-4a77-bc97-4d2959bfb708"
         submit_to_testflight: true
