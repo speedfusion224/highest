@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/generate-config.js && rm -rf dist && mkdir -p dist && cp -r src/* dist/"
+    "build": "node scripts/generate-config.js && rm -rf dist && mkdir -p dist && cp -r src/* dist/",
+    "preview": "npm run build && cd dist && python3 -m http.server 8080"
   },
   "dependencies": {},
+
   "author": "highest",
   "license": "MIT"
 }
