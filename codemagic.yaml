@@ -95,7 +95,6 @@ workflows:
         key_id: "W8RCTZ59R2"
         issuer_id: "07922d40-426a-4a77-bc97-4d2959bfb708"
         submit_to_testflight: true
-        cancel_previous_submissions: true
       email:
         recipients:
           - your@email.com
