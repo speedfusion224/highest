@@ -1,73 +1,97 @@
 workflows:
-  build-ios-testflight:
-    name: Build iOS and Submit to TestFlight
-    max_build_duration: 180
+  ios-testflight:
+    name: Highest Wash → TestFlight
+    max_build_duration: 60
     environment:
-      node: 20.0.0
-      xcode: latest
       vars:
-        SUPABASE_URL: "https://your-supabase-url.supabase.co"
-        SUPABASE_ANON_KEY: "your-supabase-anon-key"
-        SUPABASE_SERVICE_KEY: "your-supabase-service-key"
-        PAYSTACK_PUBLIC_KEY: "your-paystack-public-key"
-        PAYSTACK_SECRET_KEY: "your-paystack-secret-key"
-        PAYSTACK_BASE_URL: "https://api.paystack.co"
-        APPLE_API_KEY_ID: "W8RCTZ59R2"
-        APPLE_API_KEY_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
-        APPLE_API_KEY_P8: |
-          -----BEGIN PRIVATE KEY-----
-          YOUR_PRIVATE_KEY_CONTENT_GOES_HERE
-          -----END PRIVATE KEY-----
+        # ─── Supabase ───────────────────────────────────────────────
+        VITE_SUPABASE_URL: "https://jxilnjudduetykuxiehp.supabase.co"
+        VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aWxuanVkZHVldHlrdXhpZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMTQ5NDcsImV4cCI6MjA5Mzc5MDk0N30.iJHSz-8QQ_VoUd25E0890PgBfaC4b8igNSSyy9LZVc4"
+        VITE_SUPABASE_PROJECT_ID: "jxilnjudduetykuxiehp"
+        SUPABASE_URL: "https://jxilnjudduetykuxiehp.supabase.co"
+        SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aWxuanVkZHVldHlrdXhpZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMTQ5NDcsImV4cCI6MjA5Mzc5MDk0N30.iJHSz-8QQ_VoUd25E0890PgBfaC4b8igNSSyy9LZVc4"
+
+        # ─── Paystack ───────────────────────────────────────────────
+        VITE_PAYSTACK_PUBLIC_KEY: "pk_live_671fccd651daf066804466572cfd0b7c47df2471"
+
+        # ─── Apple ──────────────────────────────────────────────────
+        APP_STORE_CONNECT_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "W8RCTZ59R2"
         APPLE_TEAM_ID: "57UCKCV8XK"
-        APPLE_ID: "kobbyspeed@gmail.com"
+        BUNDLE_ID: "com.highestwash.app"
+
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.highestwash.app
+
+      node: latest
+      xcode: latest
+      cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
     scripts:
       - name: Install dependencies
+        script: npm install
+
+      - name: Build Vite/React app
+        script: npm run build
+
+      - name: Capacitor sync iOS
+        script: npx cap sync ios
+
+      - name: Write Apple API Key (.p8)
         script: |
-          npm install
-      - name: Generate Apple API key file
+          mkdir -p ~/.appstoreconnect/private_keys
+          cat > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 << 'APPLE_KEY'
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQglRLd4QgnJHPPaM8r
+          67Cu7McnleQ6TFtFBSbl2igMaC2gCgYIKoZIzj0DAQehRANCAAQ0o/M59ok6PMhU
+          9j9ITnZVsuUEUtkqBFEi9Rwhl3ASWdMjXKNcMDF9Du0zlj0JZqtF5ly0CVdIMuQK
+          0X90+Twp
+          -----END PRIVATE KEY-----
+          APPLE_KEY
+
+      - name: Fetch signing files from Apple
         script: |
-          if [ -n "$APPLE_API_KEY_P8" ]; then
-            printf '%s\n' "$APPLE_API_KEY_P8" > AuthKey.p8
-          fi
-      - name: Build web app
+          app-store-connect fetch-signing-files $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --private-key @file:~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
+            --create
+
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles
+
+      - name: Build iOS IPA
         script: |
-          npm run build
-      - name: Add or sync iOS platform
-        script: |
-          if [ ! -d "ios" ]; then
-            npx cap add ios --web-dir=dist
-          else
-            npx cap sync ios
-          fi
-      - name: Build iOS archive
-        script: |
-          cd ios/App
-          mkdir -p build
-          cat > exportOptions.plist <<'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>uploadBitcode</key>
-            <true/>
-            <key>compileBitcode</key>
-            <true/>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>destination</key>
-            <string>export</string>
-          </dict>
-          </plist>
-          EOF
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive DEVELOPMENT_TEAM=$APPLE_TEAM_ID CODE_SIGN_STYLE=Automatic
-          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist exportOptions.plist -exportPath build
-      - name: Upload to TestFlight
-        script: |
-          cd ios/App/build
-          xcrun altool --upload-app -f App.ipa --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_KEY_ISSUER_ID
-    artifact_paths:
-      - ios/App/build/App.ipa
-    cache:
-      - ~/.npm
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --config Release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: W8RCTZ59R2
+        issuer_id: "07922d40-426a-4a77-bc97-4d2959bfb708"
+        submit_to_testflight: true
+        cancel_previous_submissions: true
+      email:
+        recipients:
+          - your@email.com
+        notify:
+          success: true
+          failure: true
