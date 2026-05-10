@@ -1,0 +1,10 @@
+{
+  "name": "highest",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && cp -r src/* dist/"
+  },
+  "author": "highest",
+  "license": "MIT"
+}

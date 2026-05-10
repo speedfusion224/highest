@@ -1,0 +1,20 @@
+{
+  "appId": "com.highestwas.app",
+  "appName": "highest",
+  "webDir": "dist",
+  "platforms": {
+    "ios": {
+      "package": "com.highestwas.app",
+      "minVersion": "14.0"
+    }
+  },
+  "server": {
+    "url": "https://api.capgo.app"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000
+    }
+  },
+  "typescript": true
+}
