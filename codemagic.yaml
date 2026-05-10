@@ -1,9 +1,10 @@
 workflows:
-  build-web:
-    name: Build Web App
-    max_build_duration: 120
+  build-ios-testflight:
+    name: Build iOS and Submit to TestFlight
+    max_build_duration: 180
     environment:
       node: 20.0.0
+      xcode: latest
       vars:
         SUPABASE_URL: "https://your-supabase-url.supabase.co"
         SUPABASE_ANON_KEY: "your-supabase-anon-key"
@@ -13,13 +14,12 @@ workflows:
         PAYSTACK_BASE_URL: "https://api.paystack.co"
         APPLE_API_KEY_ID: "W8RCTZ59R2"
         APPLE_API_KEY_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
-        APPLE_API_KEY_PATH: "./auth_key.p8"
-        APPLE_ID: "kobbyspeed@gmail.com"
-        APPLE_TEAM_ID: "57UCKCV8XK"
         APPLE_API_KEY_P8: |
           -----BEGIN PRIVATE KEY-----
           YOUR_PRIVATE_KEY_CONTENT_GOES_HERE
           -----END PRIVATE KEY-----
+        APPLE_TEAM_ID: "57UCKCV8XK"
+        APPLE_ID: "kobbyspeed@gmail.com"
     scripts:
       - name: Install dependencies
         script: |
@@ -27,17 +27,47 @@ workflows:
       - name: Generate Apple API key file
         script: |
           if [ -n "$APPLE_API_KEY_P8" ]; then
-            printf '%s\n' "$APPLE_API_KEY_P8" > auth_key.p8
+            printf '%s\n' "$APPLE_API_KEY_P8" > AuthKey.p8
           fi
       - name: Build web app
         script: |
           npm run build
+      - name: Add or sync iOS platform
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios --web-dir=dist
+          else
+            npx cap sync ios
+          fi
+      - name: Build iOS archive
+        script: |
+          cd ios/App
+          mkdir -p build
+          cat > exportOptions.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>uploadBitcode</key>
+            <true/>
+            <key>compileBitcode</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>destination</key>
+            <string>export</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive DEVELOPMENT_TEAM=$APPLE_TEAM_ID CODE_SIGN_STYLE=Automatic
+          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist exportOptions.plist -exportPath build
+      - name: Upload to TestFlight
+        script: |
+          cd ios/App/build
+          xcrun altool --upload-app -f App.ipa --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_KEY_ISSUER_ID
     artifact_paths:
-      - dist/**/*
+      - ios/App/build/App.ipa
     cache:
       - ~/.npm
-    publishing:
-      scripts:
-        - name: Upload artifacts
-          script: |
-            echo "Artifacts available in Codemagic build output."

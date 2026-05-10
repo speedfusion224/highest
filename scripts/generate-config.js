@@ -1,5 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const config = {
   SUPABASE_URL: process.env.SUPABASE_URL || 'https://your-supabase-url.supabase.co',

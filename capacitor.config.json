@@ -1,0 +1,9 @@
+{
+  "appId": "com.highestwas.app",
+  "appName": "highest",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "ios": {
+    "cordovaSwiftVersion": "5.0"
+  }
+}

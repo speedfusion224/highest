@@ -1,12 +1,12 @@
 # Codemagic Build Setup
 
-This project now includes a Codemagic workflow for building the web app.
+This project now includes a Codemagic workflow for building an iOS app and uploading it to TestFlight.
 
 ## What is configured
 
-- `codemagic.yaml` defines a `build-web` workflow
-- It installs dependencies and runs `npm run build`
-- It saves built artifacts from `dist/**/*`
+- `codemagic.yaml` defines a `build-ios-testflight` workflow
+- It installs dependencies, builds the web app, generates the Capacitor iOS wrapper, archives the app, and uploads to TestFlight
+- It saves the generated `App.ipa` artifact
 
 ## How to use
 
@@ -17,11 +17,11 @@ This project now includes a Codemagic workflow for building the web app.
 2. Ensure the workflow file is in the repository root:
    - `codemagic.yaml`
 
-3. In Codemagic, select the `build-web` workflow.
+1. In Codemagic, select the `build-ios-testflight` workflow.
 
 4. Trigger the build.
 
-## Injecting API keys
+## Injecting API keys and Apple credentials
 
 This workflow includes placeholders for Supabase, Paystack, and Apple credentials directly in `codemagic.yaml`.
 
@@ -44,9 +44,9 @@ If you want to avoid manual environment setup entirely, replace the placeholder 
 
 ## Notes
 
-- This workflow currently builds the web assets only.
-- There is no native iOS app project in this repository yet.
-- If you want a TestFlight/iOS build, you must add an iOS wrapper (for example a Capacitor or native Xcode project) first.
+- This workflow generates the Capacitor iOS wrapper at build time if it does not already exist.
+- The app bundle ID is set in `capacitor.config.json`.
+- The `build-ios-testflight` workflow uploads the final IPA to App Store Connect using `xcrun altool`.
 
 ## Files created
 

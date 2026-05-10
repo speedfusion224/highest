@@ -1,9 +1,9 @@
 # highest
 
-This repository is configured for a Codemagic web build.
+This repository is configured for Codemagic iOS TestFlight publishing.
 
-- See `codemagic.yaml` for the build workflow and embedded Supabase/Paystack/Apple credential placeholders.
-- See `CODEMAGIC_SETUP.md` for execution instructions, including how Apple credentials are included without additional env setup.
+- See `codemagic.yaml` for the `build-ios-testflight` workflow.
+- See `CODEMAGIC_SETUP.md` for execution instructions and Apple credential setup.
 
 ## Live preview
 
