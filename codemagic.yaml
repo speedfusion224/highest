@@ -4,24 +4,18 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
-        # ─── Supabase ───────────────────────────────────────────────
         VITE_SUPABASE_URL: "https://jxilnjudduetykuxiehp.supabase.co"
         VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aWxuanVkZHVldHlrdXhpZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMTQ5NDcsImV4cCI6MjA5Mzc5MDk0N30.iJHSz-8QQ_VoUd25E0890PgBfaC4b8igNSSyy9LZVc4"
         VITE_SUPABASE_PROJECT_ID: "jxilnjudduetykuxiehp"
         SUPABASE_URL: "https://jxilnjudduetykuxiehp.supabase.co"
         SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aWxuanVkZHVldHlrdXhpZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMTQ5NDcsImV4cCI6MjA5Mzc5MDk0N30.iJHSz-8QQ_VoUd25E0890PgBfaC4b8igNSSyy9LZVc4"
-
-        # ─── Paystack ───────────────────────────────────────────────
         VITE_PAYSTACK_PUBLIC_KEY: "pk_live_671fccd651daf066804466572cfd0b7c47df2471"
-
-        # ─── Apple ──────────────────────────────────────────────────
         APP_STORE_CONNECT_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "W8RCTZ59R2"
         APPLE_TEAM_ID: "57UCKCV8XK"
         BUNDLE_ID: "com.highestwash.app"
         APP_STORE_CONNECT_PRIVATE_KEY_B64: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ2xSTGQ0UWduSkhQUGFNOHIKNjdDdTdNY25sZVE2VEZ0RkJTYmwyaWdNYUMyZ0NnWUlLb1pJemowREFRZWhSQU5DQUFRMG8vTTU5b2s2UE1oVQo5ajlJVG5aVnN1VUVVdGtxQkZFaTlSd2hsM0FTV2RNalhLTmNNREY5RHUwemxqMEpacXRGNWx5MENWZElNdVFLCjBYOTArVHdwCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
 
-      # ─── Pinned versions for stability ──────────────────────────
       node: "20.11.0"
       xcode: "16.2"
       cocoapods: default
@@ -45,36 +39,59 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Set up code signing
+      - name: Write Apple API Key
         script: |
-          export APP_STORE_CONNECT_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode)
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
 
-          # Force Manual signing in the Xcode project (cap add ios defaults to Automatic)
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = 57UCKCV8XK;/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 57UCKCV8XK;/g' ios/App/App.xcodeproj/project.pbxproj
-
-          keychain initialize
-
-          app-store-connect fetch-signing-files $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-
-          keychain add-certificates
-          xcode-project use-profiles --project ios/App/App.xcodeproj
-
-      - name: Build iOS IPA
+      - name: Create ExportOptions.plist
         script: |
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App \
-            --config Release
+          cat > /tmp/ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store-connect</string>
+              <key>teamID</key>
+              <string>57UCKCV8XK</string>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Archive app
+        script: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -config Release \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
+            -authenticationKeyID W8RCTZ59R2 \
+            -authenticationKeyIssuerID 07922d40-426a-4a77-bc97-4d2959bfb708 \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=57UCKCV8XK \
+            archive
+
+      - name: Export IPA
+        script: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
+            -authenticationKeyID W8RCTZ59R2 \
+            -authenticationKeyIssuerID 07922d40-426a-4a77-bc97-4d2959bfb708
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      # Archive provisioning profile used — for debugging if needed
-      - $HOME/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision
 
     publishing:
       app_store_connect:
