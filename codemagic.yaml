@@ -49,13 +49,13 @@ workflows:
         script: |
           export APP_STORE_CONNECT_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode)
 
-          # Initialize keychain — keeps the same keychain across retries
+          # Force Manual signing in the Xcode project (cap add ios defaults to Automatic)
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = 57UCKCV8XK;/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 57UCKCV8XK;/g' ios/App/App.xcodeproj/project.pbxproj
+
           keychain initialize
 
-          # fetch-signing-files is idempotent:
-          # - If cert/profile already exist on Apple portal → reuses them
-          # - If they don't exist yet → creates them once
-          # So rebuilds always reuse the same keys, never generate duplicates
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
             --create
