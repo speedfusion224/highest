@@ -14,16 +14,12 @@ workflows:
         # ─── Paystack ───────────────────────────────────────────────
         VITE_PAYSTACK_PUBLIC_KEY: "pk_live_671fccd651daf066804466572cfd0b7c47df2471"
 
-        # ─── Apple ──────────────────────────────────────────────────
+        # ─── Apple (Codemagic magic env var names) ──────────────────
         APP_STORE_CONNECT_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "W8RCTZ59R2"
         APPLE_TEAM_ID: "57UCKCV8XK"
         BUNDLE_ID: "com.highestwash.app"
         APP_STORE_CONNECT_PRIVATE_KEY_B64: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ2xSTGQ0UWduSkhQUGFNOHIKNjdDdTdNY25sZVE2VEZ0RkJTYmwyaWdNYUMyZ0NnWUlLb1pJemowREFRZWhSQU5DQUFRMG8vTTU5b2s2UE1oVQo5ajlJVG5aVnN1VUVVdGtxQkZFaTlSd2hsM0FTV2RNalhLTmNNREY5RHUwemxqMEpacXRGNWx5MENWZElNdVFLCjBYOTArVHdwCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
-
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.highestwash.app
 
       node: latest
       xcode: latest
@@ -46,38 +42,20 @@ workflows:
       - name: Capacitor sync iOS
         script: npx cap sync ios
 
-      - name: Initialize keychain
-        script: keychain initialize
-
-      - name: Write Apple API Key (.p8)
+      - name: Set up code signing
         script: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
+          # Export decoded key as the magic env var Codemagic CLI auto-detects
+          export APP_STORE_CONNECT_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode)
 
-      - name: Create or fetch distribution certificate
-        script: |
-          app-store-connect create-certificate \
-            --type IOS_DISTRIBUTION \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @file:~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
-            || echo "Certificate may already exist, continuing..."
+          keychain initialize
 
-      - name: Fetch signing files (create profile if missing)
-        script: |
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @file:~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
             --create
 
-      - name: Add certificates to keychain
-        script: keychain add-certificates
+          keychain add-certificates
 
-      - name: Apply code signing profiles
-        script: xcode-project use-profiles
+          xcode-project use-profiles
 
       - name: Build iOS IPA
         script: |
