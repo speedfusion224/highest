@@ -68,9 +68,7 @@ workflows:
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
             --scheme App \
-            --config Release \
-            --xcarg IPHONEOS_DEPLOYMENT_TARGET=16.0 \
-            --xcarg SWIFT_VERSION=5.0
+            --config Release
 
     artifacts:
       - build/ios/ipa/*.ipa
