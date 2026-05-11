@@ -23,7 +23,7 @@ workflows:
 
       # ─── Pinned versions for stability ──────────────────────────
       node: "20.11.0"
-      xcode: "15.4"
+      xcode: "16.4"
       cocoapods: "1.15.2"
 
     triggering:
