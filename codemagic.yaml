@@ -39,13 +39,43 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Write Apple API Key
+      - name: Fix bundle ID and signing in Xcode project
         script: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8
+          # Fix bundle ID typo (cap generates com.highestwas.app instead of com.highestwash.app)
+          sed -i '' 's/com\.highestwas\.app/com.highestwash.app/g' ios/App/App.xcodeproj/project.pbxproj
+          # Fix bundle ID in Info.plist too
+          plutil -replace CFBundleIdentifier -string "com.highestwash.app" ios/App/App/Info.plist || true
+          # Force manual signing and set team
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 57UCKCV8XK;/g' ios/App/App.xcodeproj/project.pbxproj
 
-      - name: Create ExportOptions.plist
+      - name: Set up code signing
+        script: |
+          export APP_STORE_CONNECT_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode)
+          keychain initialize
+          app-store-connect fetch-signing-files $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          # Get the downloaded profile UUID and inject it
+          PROFILE_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | plutil -extract UUID raw -)
+          echo "Using profile UUID: $PROFILE_UUID"
+          sed -i '' "s/PROVISIONING_PROFILE = \"\";/PROVISIONING_PROFILE = \"$PROFILE_UUID\";/g" ios/App/App.xcodeproj/project.pbxproj
+
+      - name: Archive app
+        script: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -config Release \
+            -archivePath build/App.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=57UCKCV8XK \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            archive
+
+      - name: Export IPA
         script: |
           cat > /tmp/ExportOptions.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -61,33 +91,11 @@ workflows:
           </dict>
           </plist>
           PLIST
-
-      - name: Archive app
-        script: |
-          xcodebuild \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
-            -config Release \
-            -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
-            -authenticationKeyID W8RCTZ59R2 \
-            -authenticationKeyIssuerID 07922d40-426a-4a77-bc97-4d2959bfb708 \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=57UCKCV8XK \
-            archive
-
-      - name: Export IPA
-        script: |
           xcodebuild \
             -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ios/ipa \
-            -exportOptionsPlist /tmp/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_W8RCTZ59R2.p8 \
-            -authenticationKeyID W8RCTZ59R2 \
-            -authenticationKeyIssuerID 07922d40-426a-4a77-bc97-4d2959bfb708
+            -exportOptionsPlist /tmp/ExportOptions.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
