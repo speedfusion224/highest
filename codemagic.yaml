@@ -14,16 +14,17 @@ workflows:
         # ─── Paystack ───────────────────────────────────────────────
         VITE_PAYSTACK_PUBLIC_KEY: "pk_live_671fccd651daf066804466572cfd0b7c47df2471"
 
-        # ─── Apple (Codemagic magic env var names) ──────────────────
+        # ─── Apple ──────────────────────────────────────────────────
         APP_STORE_CONNECT_ISSUER_ID: "07922d40-426a-4a77-bc97-4d2959bfb708"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "W8RCTZ59R2"
         APPLE_TEAM_ID: "57UCKCV8XK"
         BUNDLE_ID: "com.highestwash.app"
         APP_STORE_CONNECT_PRIVATE_KEY_B64: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ2xSTGQ0UWduSkhQUGFNOHIKNjdDdTdNY25sZVE2VEZ0RkJTYmwyaWdNYUMyZ0NnWUlLb1pJemowREFRZWhSQU5DQUFRMG8vTTU5b2s2UE1oVQo5ajlJVG5aVnN1VUVVdGtxQkZFaTlSd2hsM0FTV2RNalhLTmNNREY5RHUwemxqMEpacXRGNWx5MENWZElNdVFLCjBYOTArVHdwCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
 
-      node: latest
-      xcode: latest
-      cocoapods: default
+      # ─── Pinned versions for stability ──────────────────────────
+      node: "20.11.0"
+      xcode: "15.4"
+      cocoapods: "1.15.2"
 
     triggering:
       events:
@@ -40,21 +41,26 @@ workflows:
         script: npm run build
 
       - name: Capacitor sync iOS
-        script: npx cap sync ios
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
 
       - name: Set up code signing
         script: |
-          # Export decoded key as the magic env var Codemagic CLI auto-detects
           export APP_STORE_CONNECT_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode)
 
+          # Initialize keychain — keeps the same keychain across retries
           keychain initialize
 
+          # fetch-signing-files is idempotent:
+          # - If cert/profile already exist on Apple portal → reuses them
+          # - If they don't exist yet → creates them once
+          # So rebuilds always reuse the same keys, never generate duplicates
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
             --create
 
           keychain add-certificates
-
           xcode-project use-profiles
 
       - name: Build iOS IPA
@@ -62,11 +68,15 @@ workflows:
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
             --scheme App \
-            --config Release
+            --config Release \
+            --xcarg IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+            --xcarg SWIFT_VERSION=5.0
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      # Archive provisioning profile used — for debugging if needed
+      - $HOME/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision
 
     publishing:
       app_store_connect:
